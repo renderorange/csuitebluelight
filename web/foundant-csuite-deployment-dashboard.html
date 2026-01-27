@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foundant csuite deployment dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .last-updated {
+            color: #6e6e73;
+            font-size: 0.875rem;
+        }
+
+        .overall-status {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .overall-status h2 {
+            font-size: 1rem;
+            font-weight: 500;
+            color: #6e6e73;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .overall-status .status-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .regions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+        }
+
+        .region-card {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 1.25rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .region-card h3 {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6e6e73;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .region-card .status-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .status-value {
+            color: #86868b;
+        }
+
+        .status-value.loaded {
+            color: #34c759;
+        }
+
+        .status-value.error {
+            color: #ff3b30;
+        }
+
+        .refresh-info {
+            text-align: center;
+            margin-top: 2rem;
+            color: #86868b;
+            font-size: 0.75rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Foundant csuite deployment dashboard</h1>
+            <p class="last-updated">Last updated: <span id="last-updated">--</span></p>
+        </header>
+
+        <div class="overall-status">
+            <h2>Status</h2>
+            <div class="status-value" id="status-overall">Loading...</div>
+        </div>
+
+        <div class="regions">
+            <div class="region-card">
+                <h3>AU</h3>
+                <div class="status-value" id="status-au">Loading...</div>
+            </div>
+            <div class="region-card">
+                <h3>CA</h3>
+                <div class="status-value" id="status-ca">Loading...</div>
+            </div>
+            <div class="region-card">
+                <h3>OR</h3>
+                <div class="status-value" id="status-or">Loading...</div>
+            </div>
+            <div class="region-card">
+                <h3>US</h3>
+                <div class="status-value" id="status-us">Loading...</div>
+            </div>
+        </div>
+
+        <p class="refresh-info">Auto-refreshes every 60 seconds</p>
+    </div>
+
+    <script>
+        // Configuration - Replace these placeholder URLs with actual status file URLs
+        const STATUS_URLS = {
+            overall: 'https://content.fcsuite.com/deploy/deploy',
+            au: 'https://content.fcsuite.com/deploy/deploy-au',
+            ca: 'https://content.fcsuite.com/deploy/deploy-ca',
+            or: 'https://content.fcsuite.com/deploy/deploy-or',
+            us: 'https://content.fcsuite.com/deploy/deploy-us'
+        };
+
+        const REFRESH_INTERVAL_MS = 60000; // 60 seconds
+
+        async function fetchStatus(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                const text = await response.text();
+                return { success: true, status: text.trim() };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        function updateStatusDisplay(elementId, result) {
+            const element = document.getElementById(elementId);
+            if (result.success) {
+                element.textContent = result.status;
+                element.className = 'status-value loaded';
+            } else {
+                element.textContent = `Error: ${result.error}`;
+                element.className = 'status-value error';
+            }
+        }
+
+        function updateLastUpdated() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            document.getElementById('last-updated').textContent = timeString;
+        }
+
+        async function refreshAllStatuses() {
+            const regions = ['overall', 'au', 'ca', 'or', 'us'];
+
+            const results = await Promise.all(
+                regions.map(region => fetchStatus(STATUS_URLS[region]))
+            );
+
+            regions.forEach((region, index) => {
+                updateStatusDisplay(`status-${region}`, results[index]);
+            });
+
+            updateLastUpdated();
+        }
+
+        // Initial fetch
+        refreshAllStatuses();
+
+        // Set up auto-refresh
+        setInterval(refreshAllStatuses, REFRESH_INTERVAL_MS);
+    </script>
+</body>
+</html>
