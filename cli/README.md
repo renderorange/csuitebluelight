@@ -4,7 +4,7 @@ Command-line tool to check CSuite deployment status.
 
 ## Installation
 
-Download the latest binary for your platform from [Releases](../../releases).
+Download the latest binary for your platform from [Releases](../../../releases).
 
 Or build from source:
 ```
