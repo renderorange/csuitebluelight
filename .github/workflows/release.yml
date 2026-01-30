@@ -42,7 +42,7 @@ jobs:
             goarch: arm64
             suffix: ''
             can_test: false  # Cross-compiled, can't run natively
-          - runner: macos-13
+          - runner: macos-15
             goos: darwin
             goarch: amd64
             suffix: ''
