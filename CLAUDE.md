@@ -87,6 +87,19 @@ cd slack-bot && source venv/bin/activate && pytest --cov=lambda_function test_la
 - **Go**: Always run `gofmt -w` on all Go files after making changes
 - **Git**: Do not add "Co-Authored-By" lines to commit messages
 
+## Releasing
+
+CLI releases are automated via GitHub Actions (`.github/workflows/release.yml`):
+
+1. Go to **Actions** → **Release** in GitHub
+2. Click **Run workflow**
+3. Enter version number (e.g., `1.0.0`)
+4. Workflow will:
+   - Run tests (fails release if tests fail)
+   - Build binaries for Linux, macOS, Windows (amd64 + arm64)
+   - Create git tag `v1.0.0`
+   - Create GitHub Release with binaries attached
+
 ## Notes
 - CORS: Status endpoints don't have CORS headers; dashboard must be served from same domain
 - Go is installed at `/usr/local/go/bin/go`

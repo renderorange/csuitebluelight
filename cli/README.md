@@ -32,8 +32,25 @@ OR         complete
 US         complete
 ```
 
-## Building for Multiple Platforms
+## Creating a Release
 
+Releases are created via GitHub Actions:
+
+1. Go to **Actions** → **Release** in the GitHub repo
+2. Click **Run workflow**
+3. Enter a version number (e.g., `1.0.0`)
+4. Click **Run workflow**
+
+The workflow runs tests, builds binaries for all platforms, creates a `v1.0.0` tag, and publishes a GitHub Release with the binaries attached.
+
+## Building Locally
+
+For local development, build for your platform:
+```
+go build -o deploy-status
+```
+
+Cross-compile for all platforms:
 ```
 GOOS=linux GOARCH=amd64 go build -o dist/deploy-status-linux-amd64
 GOOS=linux GOARCH=arm64 go build -o dist/deploy-status-linux-arm64
