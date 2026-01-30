@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/fatih/color"
@@ -156,7 +158,10 @@ func TestFetchAllStatuses_ReturnsAllRegions(t *testing.T) {
 		Transport: &mockTransport{responses: responses},
 	}
 
-	results := fetchAllStatuses()
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+	fetchAllStatuses(cache)
+	results := cache.GetAll()
 
 	for _, region := range regions {
 		result, ok := results[region]
@@ -189,7 +194,10 @@ func TestFetchAllStatuses_MixedResults(t *testing.T) {
 		},
 	}
 
-	results := fetchAllStatuses()
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+	fetchAllStatuses(cache)
+	results := cache.GetAll()
 
 	if results["overall"].status != "testing" {
 		t.Errorf("overall: expected 'testing', got %q", results["overall"].status)
@@ -213,7 +221,10 @@ func TestIntegration_FetchRealStatuses(t *testing.T) {
 		t.Skip("skipping integration test in short mode")
 	}
 
-	results := fetchAllStatuses()
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+	fetchAllStatuses(cache)
+	results := cache.GetAll()
 
 	for region, result := range results {
 		if result.err != nil {
@@ -222,5 +233,116 @@ func TestIntegration_FetchRealStatuses(t *testing.T) {
 		if result.status == "" {
 			t.Errorf("region %q had empty status", region)
 		}
+	}
+}
+
+func TestStatusCache_PersistsToDisk(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+
+	// Create cache and update it
+	cache := NewStatusCacheWithPath(tmpFile)
+	cache.Update(statusResult{region: "overall", status: "testing"})
+	cache.Update(statusResult{region: "au", status: "complete"})
+
+	// Create new cache from same file - should load persisted data
+	cache2 := NewStatusCacheWithPath(tmpFile)
+	results := cache2.GetAll()
+
+	if results["overall"].status != "testing" {
+		t.Errorf("overall: expected 'testing', got %q", results["overall"].status)
+	}
+	if results["au"].status != "complete" {
+		t.Errorf("au: expected 'complete', got %q", results["au"].status)
+	}
+}
+
+func TestStatusCache_PersistsErrors(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+
+	cache := NewStatusCacheWithPath(tmpFile)
+	cache.Update(statusResult{region: "ca", err: errors.New("connection refused")})
+
+	cache2 := NewStatusCacheWithPath(tmpFile)
+	result, ok := cache2.Get("ca")
+
+	if !ok {
+		t.Fatal("expected to find 'ca' in cache")
+	}
+	if result.err == nil {
+		t.Error("expected error to be persisted")
+	}
+	if result.err.Error() != "connection refused" {
+		t.Errorf("expected 'connection refused', got %q", result.err.Error())
+	}
+}
+
+func TestStatusCache_UpdateAll(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+
+	results := map[string]statusResult{
+		"overall": {region: "overall", status: "testing"},
+		"au":      {region: "au", status: "complete"},
+		"ca":      {region: "ca", status: "pr"},
+	}
+	cache.UpdateAll(results)
+
+	// Verify all were saved
+	cache2 := NewStatusCacheWithPath(tmpFile)
+	loaded := cache2.GetAll()
+
+	if len(loaded) != 3 {
+		t.Errorf("expected 3 statuses, got %d", len(loaded))
+	}
+	if loaded["overall"].status != "testing" {
+		t.Errorf("overall: expected 'testing', got %q", loaded["overall"].status)
+	}
+}
+
+func TestStatusCache_GetUpdatedAt(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+
+	cache.Update(statusResult{region: "overall", status: "testing"})
+
+	updatedAt, ok := cache.GetUpdatedAt("overall")
+	if !ok {
+		t.Fatal("expected to find 'overall' timestamp")
+	}
+	if updatedAt.IsZero() {
+		t.Error("expected non-zero timestamp")
+	}
+
+	_, ok = cache.GetUpdatedAt("nonexistent")
+	if ok {
+		t.Error("expected false for nonexistent region")
+	}
+}
+
+func TestStatusCache_EmptyFile(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+
+	// Create empty file
+	os.WriteFile(tmpFile, []byte(""), 0644)
+
+	cache := NewStatusCacheWithPath(tmpFile)
+	results := cache.GetAll()
+
+	if len(results) != 0 {
+		t.Errorf("expected empty cache, got %d entries", len(results))
+	}
+}
+
+func TestStatusCache_InvalidJSON(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+
+	// Create file with invalid JSON
+	os.WriteFile(tmpFile, []byte("not valid json"), 0644)
+
+	cache := NewStatusCacheWithPath(tmpFile)
+	results := cache.GetAll()
+
+	if len(results) != 0 {
+		t.Errorf("expected empty cache for invalid JSON, got %d entries", len(results))
 	}
 }

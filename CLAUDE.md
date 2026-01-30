@@ -70,6 +70,22 @@ cd cli && go test -v ./...
 cd slack-bot && source venv/bin/activate && pytest test_lambda.py -v
 ```
 
+### Verifying Code Coverage
+After making changes, verify test coverage:
+```bash
+# Go coverage summary
+cd cli && go test -cover ./...
+
+# Go coverage by function
+cd cli && go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
+
+# Python coverage
+cd slack-bot && source venv/bin/activate && pytest --cov=lambda_function test_lambda.py
+```
+
+## Code Style
+- **Go**: Always run `gofmt -w` on all Go files after making changes
+
 ## Notes
 - CORS: Status endpoints don't have CORS headers; dashboard must be served from same domain
 - Go is installed at `/usr/local/go/bin/go`

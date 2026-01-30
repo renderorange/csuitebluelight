@@ -36,6 +36,11 @@ build/
 .mypy_cache/
 .ruff_cache/
 
+# Test coverage
+coverage.out
+*.coverprofile
+coverage.html
+
 # Project-specific: keep cli/dist/ directory but not its contents
 cli/dist/*
 !cli/dist/.gitkeep
