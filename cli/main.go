@@ -341,8 +341,8 @@ func main() {
 
 	if *watch {
 		for {
-			clearScreen()
 			fetchAllStatuses(cache)
+			clearScreen()
 			printStatus(cache, true)
 
 			// Refresh faster when deployment is in progress
