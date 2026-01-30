@@ -51,7 +51,7 @@ US:      https://content.fcsuite.com/deploy/deploy-us
   - Display refreshes every 30 seconds (reads from disk cache)
   - Network fetch uses variable interval: 30s when active, 85s when complete
   - Cache only writes to disk when status values change
-  - Shows "Cache read" and "Cache written" timestamps in watch mode
+  - Shows "last cache read" and "last cache write" timestamps in watch mode (format: `Mon Jan 2 15:04:05 2006`)
 - Disk cache stored in OS-appropriate location (`~/.cache/`, `~/Library/Caches/`, `%LocalAppData%`)
 - `main_test.go` - Tests using mock RoundTripper (no network calls)
 - Binaries distributed via GitHub Releases (not committed to repo)
@@ -90,6 +90,10 @@ cd slack-bot && source venv/bin/activate && pytest --cov=lambda_function test_la
 ## Code Style
 - **Go**: Always run `gofmt -w` on all Go files after making changes
 - **Git**: Do not add "Co-Authored-By" lines to commit messages
+
+## After Every Change
+- **Tests**: Always update or add tests to cover your changes. Run tests to verify they pass.
+- **Documentation**: Update relevant documentation (README files, CLAUDE.md) to reflect any user-facing or behavioral changes.
 
 ## Releasing
 

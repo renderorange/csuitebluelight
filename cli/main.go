@@ -374,12 +374,11 @@ func printStatus(cache *StatusCache, showTimestamp bool) {
 	if showTimestamp {
 		fmt.Println()
 		if lastRead := cache.GetLastReadAt(); !lastRead.IsZero() {
-			gray.Printf("Cache read:    %s\n", lastRead.Format("3:04:05 PM"))
+			gray.Printf("last cache read:  %s\n", lastRead.Format("Mon Jan 2 15:04:05 2006"))
 		}
-		if lastWritten := cache.GetLastWrittenAt(); !lastWritten.IsZero() {
-			gray.Printf("Cache written: %s\n", lastWritten.Format("3:04:05 PM"))
-		}
-		gray.Println("Press Ctrl+C to exit")
+		gray.Printf("last cache write: %s\n", cache.GetLastWrittenAt().Format("Mon Jan 2 15:04:05 2006"))
+		fmt.Println()
+		gray.Println("Ctrl+C to exit")
 	}
 }
 

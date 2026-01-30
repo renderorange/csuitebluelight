@@ -42,9 +42,10 @@ CA         complete
 OR         complete
 US         complete
 
-Cache read:    3:04:35 PM
-Cache written: 3:04:05 PM
-Press Ctrl+C to exit
+last cache read:  Fri Jan 30 15:04:35 2026
+last cache write: Fri Jan 30 15:04:05 2026
+
+Ctrl+C to exit
 ```
 
 ## Watch Mode
@@ -57,8 +58,8 @@ In watch mode (`--watch`), the CLI uses independent read and write loops:
   - 85 seconds when deployment is complete (reduces unnecessary polling)
 - **Cache writes**: Only writes to disk when status values actually change
 
-The "Cache read" timestamp shows when the display last refreshed from disk.
-The "Cache written" timestamp shows when new data was fetched from the network.
+The "last cache read" timestamp shows when the display last refreshed from disk.
+The "last cache write" timestamp shows when new data was fetched from the network.
 
 ## Caching
 
