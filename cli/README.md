@@ -40,7 +40,7 @@ Releases are created via GitHub Actions:
 3. Enter a version number (e.g., `1.0.0`)
 4. Click **Run workflow**
 
-The workflow runs tests, builds binaries for all platforms, creates a `v1.0.0` tag, and publishes a GitHub Release with the binaries attached.
+The workflow runs tests, builds binaries for all platforms, smoke tests each binary on native runners (except linux-arm64 which is cross-compiled), creates a `v1.0.0` tag, and publishes a GitHub Release with the binaries attached.
 
 ## Building Locally
 
