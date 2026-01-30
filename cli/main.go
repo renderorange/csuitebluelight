@@ -344,7 +344,13 @@ func main() {
 			clearScreen()
 			fetchAllStatuses(cache)
 			printStatus(cache, true)
-			time.Sleep(60 * time.Second)
+
+			// Refresh faster when deployment is in progress
+			interval := 85 * time.Second
+			if result, ok := cache.Get("overall"); ok && strings.ToLower(result.status) != "complete" {
+				interval = 30 * time.Second
+			}
+			time.Sleep(interval)
 		}
 	} else {
 		fetchAllStatuses(cache)
