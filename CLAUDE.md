@@ -96,6 +96,7 @@ CLI releases are automated via GitHub Actions (`.github/workflows/release.yml`):
 4. Workflow will:
    - Run tests (fails release if tests fail)
    - Build binaries for Linux, macOS, Windows (amd64 + arm64)
+   - Smoke test binaries on native runners (linux-arm64 excluded, cross-compiled)
    - Create git tag `v1.0.0`
    - Create GitHub Release with binaries attached
 
