@@ -27,26 +27,36 @@ jobs:
 
   build:
     name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     needs: test
     strategy:
       matrix:
         include:
-          - goos: linux
+          - runner: ubuntu-latest
+            goos: linux
             goarch: amd64
             suffix: ''
-          - goos: linux
+            can_test: true
+          - runner: ubuntu-latest
+            goos: linux
             goarch: arm64
             suffix: ''
-          - goos: darwin
+            can_test: false  # Cross-compiled, can't run natively
+          - runner: macos-13
+            goos: darwin
             goarch: amd64
             suffix: ''
-          - goos: darwin
+            can_test: true
+          - runner: macos-latest
+            goos: darwin
             goarch: arm64
             suffix: ''
-          - goos: windows
+            can_test: true
+          - runner: windows-latest
+            goos: windows
             goarch: amd64
             suffix: '.exe'
+            can_test: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -64,6 +74,13 @@ jobs:
           CGO_ENABLED: '0'
         run: |
           go build -ldflags="-s -w" -o deploy-status-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}
+
+      - name: Smoke test binary
+        if: matrix.can_test
+        working-directory: cli
+        run: |
+          ./deploy-status-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.suffix }}
+        shell: bash
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
