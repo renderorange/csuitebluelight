@@ -85,6 +85,7 @@ cd slack-bot && source venv/bin/activate && pytest --cov=lambda_function test_la
 
 ## Code Style
 - **Go**: Always run `gofmt -w` on all Go files after making changes
+- **Git**: Do not add "Co-Authored-By" lines to commit messages
 
 ## Notes
 - CORS: Status endpoints don't have CORS headers; dashboard must be served from same domain
