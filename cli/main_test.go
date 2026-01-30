@@ -346,3 +346,114 @@ func TestStatusCache_InvalidJSON(t *testing.T) {
 		t.Errorf("expected empty cache for invalid JSON, got %d entries", len(results))
 	}
 }
+
+func TestStatusCache_Reload(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+
+	// Create first cache and update it
+	cache1 := NewStatusCacheWithPath(tmpFile)
+	cache1.Update(statusResult{region: "overall", status: "testing"})
+
+	// Create second cache - starts with same data
+	cache2 := NewStatusCacheWithPath(tmpFile)
+
+	// Update first cache with new data
+	cache1.Update(statusResult{region: "overall", status: "complete"})
+
+	// Second cache should still have old data in memory
+	result, _ := cache2.Get("overall")
+	if result.status != "testing" {
+		t.Errorf("expected 'testing' before reload, got %q", result.status)
+	}
+
+	// After reload, second cache should see the new data
+	cache2.Reload()
+	result, _ = cache2.Get("overall")
+	if result.status != "complete" {
+		t.Errorf("expected 'complete' after reload, got %q", result.status)
+	}
+}
+
+func TestStatusCache_UpdateAllSkipsWriteWhenNoChanges(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+
+	// Initial update
+	results := map[string]statusResult{
+		"overall": {region: "overall", status: "testing"},
+		"au":      {region: "au", status: "complete"},
+	}
+	cache.UpdateAll(results)
+
+	// Get the file modification time
+	info1, _ := os.Stat(tmpFile)
+	modTime1 := info1.ModTime()
+
+	// Update with same values - should not write
+	cache.UpdateAll(results)
+
+	// File modification time should be unchanged
+	info2, _ := os.Stat(tmpFile)
+	modTime2 := info2.ModTime()
+
+	if !modTime1.Equal(modTime2) {
+		t.Error("expected file not to be written when no changes")
+	}
+
+	// Update with different value - should write
+	results["overall"] = statusResult{region: "overall", status: "complete"}
+	cache.UpdateAll(results)
+
+	info3, _ := os.Stat(tmpFile)
+	modTime3 := info3.ModTime()
+
+	if modTime2.Equal(modTime3) {
+		t.Error("expected file to be written when there are changes")
+	}
+}
+
+func TestStatusCache_UpdateAllDetectsErrorChanges(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+
+	// Initial update with error
+	results := map[string]statusResult{
+		"overall": {region: "overall", err: errors.New("connection refused")},
+	}
+	cache.UpdateAll(results)
+
+	info1, _ := os.Stat(tmpFile)
+	modTime1 := info1.ModTime()
+
+	// Update with same error - should not write
+	cache.UpdateAll(results)
+
+	info2, _ := os.Stat(tmpFile)
+	modTime2 := info2.ModTime()
+
+	if !modTime1.Equal(modTime2) {
+		t.Error("expected file not to be written when error unchanged")
+	}
+
+	// Update with different error - should write
+	results["overall"] = statusResult{region: "overall", err: errors.New("timeout")}
+	cache.UpdateAll(results)
+
+	info3, _ := os.Stat(tmpFile)
+	modTime3 := info3.ModTime()
+
+	if modTime2.Equal(modTime3) {
+		t.Error("expected file to be written when error changes")
+	}
+
+	// Update with no error (status instead) - should write
+	results["overall"] = statusResult{region: "overall", status: "complete"}
+	cache.UpdateAll(results)
+
+	info4, _ := os.Stat(tmpFile)
+	modTime4 := info4.ModTime()
+
+	if modTime3.Equal(modTime4) {
+		t.Error("expected file to be written when error cleared")
+	}
+}

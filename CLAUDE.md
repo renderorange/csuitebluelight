@@ -47,7 +47,10 @@ US:      https://content.fcsuite.com/deploy/deploy-us
 ### 3. CLI tool (`cli/`)
 - `main.go` - Cross-platform Go CLI
 - Color-coded terminal output using `github.com/fatih/color`
-- `--watch` flag for continuous refresh mode (30s when active, 85s when complete)
+- `--watch` flag for continuous refresh mode with independent read/write loops:
+  - Display refreshes every 30 seconds (reads from disk cache)
+  - Network fetch uses variable interval: 30s when active, 85s when complete
+  - Cache only writes to disk when status values change
 - `main_test.go` - Tests using mock RoundTripper (no network calls)
 - Binaries distributed via GitHub Releases (not committed to repo)
 - `cli/dist/` directory preserved via `.gitkeep` for local builds

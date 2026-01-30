@@ -108,6 +108,11 @@ func (c *StatusCache) load() {
 	c.mu.Unlock()
 }
 
+// Reload re-reads the cache from disk (for reading updated data from other processes)
+func (c *StatusCache) Reload() {
+	c.load()
+}
+
 // save writes the cache to disk
 func (c *StatusCache) save() error {
 	c.mu.RLock()
@@ -141,9 +146,34 @@ func (c *StatusCache) Update(result statusResult) error {
 	return c.save()
 }
 
-// UpdateAll stores multiple status results and saves once
+// UpdateAll stores multiple status results and saves only if there are changes
 func (c *StatusCache) UpdateAll(results map[string]statusResult) error {
 	c.mu.Lock()
+
+	// Check if any status or error has changed
+	hasChanges := false
+	for region, result := range results {
+		existing, ok := c.statuses[region]
+		if !ok {
+			hasChanges = true
+			break
+		}
+		newError := ""
+		if result.err != nil {
+			newError = result.err.Error()
+		}
+		if existing.Status != result.status || existing.Error != newError {
+			hasChanges = true
+			break
+		}
+	}
+
+	if !hasChanges {
+		c.mu.Unlock()
+		return nil
+	}
+
+	// Apply updates
 	now := time.Now()
 	for region, result := range results {
 		cached := cachedStatus{
@@ -340,17 +370,29 @@ func main() {
 	}
 
 	if *watch {
+		// Initial fetch before displaying
+		fetchAllStatuses(cache)
+
+		// Background goroutine for fetching (write logic)
+		// Uses variable interval: 30s when active, 85s when complete
+		go func() {
+			for {
+				interval := 85 * time.Second
+				if result, ok := cache.Get("overall"); ok && strings.ToLower(result.status) != "complete" {
+					interval = 30 * time.Second
+				}
+				time.Sleep(interval)
+				fetchAllStatuses(cache)
+			}
+		}()
+
+		// Main loop for displaying (read logic)
+		// Always refreshes every 30 seconds
 		for {
-			fetchAllStatuses(cache)
+			cache.Reload()
 			clearScreen()
 			printStatus(cache, true)
-
-			// Refresh faster when deployment is in progress
-			interval := 85 * time.Second
-			if result, ok := cache.Get("overall"); ok && strings.ToLower(result.status) != "complete" {
-				interval = 30 * time.Second
-			}
-			time.Sleep(interval)
+			time.Sleep(30 * time.Second)
 		}
 	} else {
 		fetchAllStatuses(cache)
