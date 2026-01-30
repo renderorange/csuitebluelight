@@ -401,6 +401,9 @@ func TestStatusCache_UpdateAllSkipsWriteWhenNoChanges(t *testing.T) {
 		t.Error("expected file not to be written when no changes")
 	}
 
+	// Wait to ensure filesystem timestamp changes if a write occurs
+	time.Sleep(time.Second)
+
 	// Update with different value - should write
 	results["overall"] = statusResult{region: "overall", status: "complete"}
 	cache.UpdateAll(results)
@@ -501,6 +504,9 @@ func TestStatusCache_UpdateAllDetectsErrorChanges(t *testing.T) {
 		t.Error("expected file not to be written when error unchanged")
 	}
 
+	// Wait to ensure filesystem timestamp changes if a write occurs
+	time.Sleep(time.Second)
+
 	// Update with different error - should write
 	results["overall"] = statusResult{region: "overall", err: errors.New("timeout")}
 	cache.UpdateAll(results)
@@ -511,6 +517,9 @@ func TestStatusCache_UpdateAllDetectsErrorChanges(t *testing.T) {
 	if modTime2.Equal(modTime3) {
 		t.Error("expected file to be written when error changes")
 	}
+
+	// Wait to ensure filesystem timestamp changes if a write occurs
+	time.Sleep(time.Second)
 
 	// Update with no error (status instead) - should write
 	results["overall"] = statusResult{region: "overall", status: "complete"}
