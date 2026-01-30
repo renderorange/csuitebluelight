@@ -331,7 +331,6 @@ func printStatus(cache *StatusCache, showTimestamp bool) {
 
 func main() {
 	watch := flag.Bool("watch", false, "Continuously refresh status")
-	interval := flag.Int("interval", 60, "Refresh interval in seconds")
 	flag.Parse()
 
 	cache, err := NewStatusCache()
@@ -345,7 +344,7 @@ func main() {
 			clearScreen()
 			fetchAllStatuses(cache)
 			printStatus(cache, true)
-			time.Sleep(time.Duration(*interval) * time.Second)
+			time.Sleep(60 * time.Second)
 		}
 	} else {
 		fetchAllStatuses(cache)

@@ -16,8 +16,7 @@ go build -o deploy-status
 
 ```
 deploy-status              # Check once
-deploy-status --watch      # Continuous refresh (clears screen)
-deploy-status --interval 30  # Refresh every 30 seconds (default: 60)
+deploy-status --watch      # Continuous refresh every 60 seconds
 ```
 
 ## Example Output
