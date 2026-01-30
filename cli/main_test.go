@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/fatih/color"
 )
@@ -409,6 +410,71 @@ func TestStatusCache_UpdateAllSkipsWriteWhenNoChanges(t *testing.T) {
 
 	if modTime2.Equal(modTime3) {
 		t.Error("expected file to be written when there are changes")
+	}
+}
+
+func TestStatusCache_GetLastReadAt(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+
+	// Create cache and update it
+	cache1 := NewStatusCacheWithPath(tmpFile)
+	cache1.Update(statusResult{region: "overall", status: "testing"})
+
+	// New cache loading from file should have lastReadAt set
+	cache2 := NewStatusCacheWithPath(tmpFile)
+	lastRead := cache2.GetLastReadAt()
+
+	if lastRead.IsZero() {
+		t.Error("expected lastReadAt to be set after loading from file")
+	}
+
+	// Reload should update lastReadAt
+	time.Sleep(10 * time.Millisecond)
+	cache2.Reload()
+	newLastRead := cache2.GetLastReadAt()
+
+	if !newLastRead.After(lastRead) {
+		t.Error("expected lastReadAt to be updated after Reload")
+	}
+}
+
+func TestStatusCache_GetLastWrittenAt(t *testing.T) {
+	tmpFile := filepath.Join(t.TempDir(), "statuses.json")
+	cache := NewStatusCacheWithPath(tmpFile)
+
+	// Initially should be zero
+	if !cache.GetLastWrittenAt().IsZero() {
+		t.Error("expected lastWrittenAt to be zero initially")
+	}
+
+	// After update, should be set
+	cache.Update(statusResult{region: "overall", status: "testing"})
+	lastWritten := cache.GetLastWrittenAt()
+
+	if lastWritten.IsZero() {
+		t.Error("expected lastWrittenAt to be set after Update")
+	}
+
+	// After UpdateAll with changes, should be updated
+	time.Sleep(10 * time.Millisecond)
+	cache.UpdateAll(map[string]statusResult{
+		"overall": {region: "overall", status: "complete"},
+	})
+	newLastWritten := cache.GetLastWrittenAt()
+
+	if !newLastWritten.After(lastWritten) {
+		t.Error("expected lastWrittenAt to be updated after UpdateAll with changes")
+	}
+
+	// After UpdateAll without changes, should NOT be updated
+	previousWritten := cache.GetLastWrittenAt()
+	time.Sleep(10 * time.Millisecond)
+	cache.UpdateAll(map[string]statusResult{
+		"overall": {region: "overall", status: "complete"},
+	})
+
+	if !cache.GetLastWrittenAt().Equal(previousWritten) {
+		t.Error("expected lastWrittenAt to remain unchanged when no changes")
 	}
 }
 

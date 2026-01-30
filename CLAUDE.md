@@ -51,6 +51,8 @@ US:      https://content.fcsuite.com/deploy/deploy-us
   - Display refreshes every 30 seconds (reads from disk cache)
   - Network fetch uses variable interval: 30s when active, 85s when complete
   - Cache only writes to disk when status values change
+  - Shows "Cache read" and "Cache written" timestamps in watch mode
+- Disk cache stored in OS-appropriate location (`~/.cache/`, `~/Library/Caches/`, `%LocalAppData%`)
 - `main_test.go` - Tests using mock RoundTripper (no network calls)
 - Binaries distributed via GitHub Releases (not committed to repo)
 - `cli/dist/` directory preserved via `.gitkeep` for local builds

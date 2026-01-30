@@ -47,9 +47,11 @@ type cachedStatus struct {
 
 // StatusCache stores deployment statuses in memory and persists to disk
 type StatusCache struct {
-	mu       sync.RWMutex
-	statuses map[string]cachedStatus
-	filePath string
+	mu            sync.RWMutex
+	statuses      map[string]cachedStatus
+	filePath      string
+	lastReadAt    time.Time
+	lastWrittenAt time.Time
 }
 
 // getCacheDir returns the cache directory path using OS-appropriate location
@@ -105,6 +107,7 @@ func (c *StatusCache) load() {
 
 	c.mu.Lock()
 	c.statuses = statuses
+	c.lastReadAt = time.Now()
 	c.mu.Unlock()
 }
 
@@ -126,6 +129,10 @@ func (c *StatusCache) save() error {
 	if err := os.WriteFile(c.filePath, data, 0644); err != nil {
 		return fmt.Errorf("failed to write cache: %w", err)
 	}
+
+	c.mu.Lock()
+	c.lastWrittenAt = time.Now()
+	c.mu.Unlock()
 
 	return nil
 }
@@ -241,6 +248,20 @@ func (c *StatusCache) GetUpdatedAt(region string) (time.Time, bool) {
 	return cached.UpdatedAt, true
 }
 
+// GetLastReadAt returns when the cache was last read from disk
+func (c *StatusCache) GetLastReadAt() time.Time {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.lastReadAt
+}
+
+// GetLastWrittenAt returns when the cache was last written to disk
+func (c *StatusCache) GetLastWrittenAt() time.Time {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.lastWrittenAt
+}
+
 // httpClient is the HTTP client used for fetching statuses (overridable for testing)
 var httpClient = &http.Client{Timeout: 10 * time.Second}
 
@@ -352,8 +373,11 @@ func printStatus(cache *StatusCache, showTimestamp bool) {
 
 	if showTimestamp {
 		fmt.Println()
-		if updatedAt, ok := cache.GetUpdatedAt("overall"); ok {
-			gray.Printf("Last updated: %s\n", updatedAt.Format("15:04:05"))
+		if lastRead := cache.GetLastReadAt(); !lastRead.IsZero() {
+			gray.Printf("Cache read:    %s\n", lastRead.Format("3:04:05 PM"))
+		}
+		if lastWritten := cache.GetLastWrittenAt(); !lastWritten.IsZero() {
+			gray.Printf("Cache written: %s\n", lastWritten.Format("3:04:05 PM"))
 		}
 		gray.Println("Press Ctrl+C to exit")
 	}
